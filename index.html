@@ -1,0 +1,1752 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BioGeoLab 10° | Evaluación Individual de Ciclos Biogeoquímicos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+
+        /* Bloqueo total de selección, copiado y menú contextual */
+        * {
+            -webkit-user-select: none !important;
+            -moz-user-select: none !important;
+            -ms-user-select: none !important;
+            user-select: none !important;
+            -webkit-touch-callout: none !important;
+        }
+
+        /* Permitir escritura manual en inputs y textarea sin selección para copiar */
+        input[type="text"], textarea {
+            -webkit-user-select: text !important;
+            user-select: text !important;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #090e1a;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.90);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+        }
+
+        .role-card {
+            transition: all 0.25s ease;
+        }
+        .role-card:hover {
+            transform: translateY(-2px);
+        }
+        .role-card.selected {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.15);
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.25);
+        }
+
+        .level-pill {
+            transition: all 0.25s ease;
+        }
+        .level-pill.locked {
+            opacity: 0.38;
+            filter: grayscale(0.95);
+            cursor: not-allowed;
+        }
+        .level-pill.active {
+            border-color: #38bdf8;
+            background: rgba(56, 189, 248, 0.16);
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+        }
+        .level-pill.completed {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.18);
+        }
+
+        input[type="range"] {
+            accent-color: #10b981;
+            touch-action: pan-y;
+        }
+
+        /* Guías visuales de 4 renglones para el Paso 3 */
+        .lined-textarea {
+            line-height: 1.75rem;
+            background-image: linear-gradient(transparent, transparent 27px, rgba(51, 65, 85, 0.5) 28px);
+            background-size: 100% 28px;
+        }
+
+        @keyframes pulse-alert {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.45; }
+        }
+        .animate-pulse-alert {
+            animation: pulse-alert 1.8s infinite;
+        }
+
+        @media print {
+            body {
+                background: #ffffff !important;
+                color: #000000 !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .glass-panel {
+                background: #ffffff !important;
+                border: 1px solid #cbd5e1 !important;
+                color: #000000 !important;
+                box-shadow: none !important;
+            }
+            .print-text-dark {
+                color: #1e293b !important;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col" oncontextmenu="return false;" oncopy="return false;" oncut="return false;" onpaste="return false;">
+
+    <!-- ==========================================
+         BARRA SUPERIOR DE CONTROL Y TIEMPO
+         ========================================== -->
+    <header class="sticky top-0 z-40 glass-panel border-b border-slate-800 px-3 sm:px-6 py-2.5 no-print">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 sm:gap-4">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0">
+                    <i class="fa-solid fa-atom text-slate-950 text-lg sm:text-xl"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="font-extrabold text-sm sm:text-base tracking-tight text-white">BioGeoLab 10°</h1>
+                        <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30">
+                            <i class="fa-solid fa-lock text-[9px] mr-0.5"></i> Acceso Único
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 truncate max-w-[180px] sm:max-w-xs" id="headerStudentInfo">Evaluación Individual • 10 Niveles</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
+                <!-- Monitor de Pestañas -->
+                <div class="flex items-center gap-1.5 bg-slate-900/90 px-2.5 py-1 rounded-lg border border-slate-700" title="Salidas de pestaña o ventana detectadas">
+                    <i class="fa-solid fa-shield-halved text-amber-400 text-xs"></i>
+                    <span class="text-[11px] text-slate-400 hidden md:inline">Alertas:</span>
+                    <span class="mono font-bold text-xs text-amber-400" id="headerStrikes">0</span>
+                </div>
+
+                <!-- Nivel en Curso -->
+                <div class="hidden sm:flex items-center gap-1.5 bg-slate-900/90 px-2.5 py-1 rounded-lg border border-slate-700">
+                    <i class="fa-solid fa-layer-group text-cyan-400 text-xs"></i>
+                    <span class="text-[11px] text-slate-300 font-semibold" id="headerProgress">Nivel 1 / 10</span>
+                </div>
+
+                <!-- Puntaje -->
+                <div class="flex items-center gap-1.5 bg-slate-900/90 px-2.5 py-1 rounded-lg border border-slate-700">
+                    <i class="fa-solid fa-star text-emerald-400 text-xs"></i>
+                    <span class="mono font-bold text-xs sm:text-sm text-emerald-400" id="headerScore">0 PTS</span>
+                </div>
+
+                <!-- Cronómetro de Pacing del Nivel -->
+                <div class="hidden lg:flex items-center gap-2 bg-slate-900 px-3 py-1 rounded-xl border border-cyan-500/30">
+                    <i class="fa-solid fa-hourglass-half text-cyan-400 text-xs"></i>
+                    <div>
+                        <span class="text-[9px] uppercase tracking-wider text-slate-400 block leading-none">Nivel Actual</span>
+                        <span class="mono font-bold text-xs text-cyan-300" id="levelTimerDisplay">06:00</span>
+                    </div>
+                </div>
+
+                <!-- Cronómetro Global de 1 Hora -->
+                <div class="flex items-center gap-2 bg-slate-950 px-3 py-1 rounded-xl border border-amber-500/40" id="globalTimerBox">
+                    <i class="fa-solid fa-stopwatch text-amber-400 text-sm animate-pulse-alert"></i>
+                    <div>
+                        <span class="text-[9px] uppercase tracking-wider text-slate-400 block leading-none">Total (1h)</span>
+                        <span class="mono font-bold text-sm sm:text-base text-amber-300" id="globalTimerDisplay">60:00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ==========================================
+         CONTENIDO PRINCIPAL
+         ========================================== -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-3 sm:px-6 py-5">
+
+        <!-- ==========================================
+             VISTA 1: REGISTRO ÚNICO DEL DISPOSITIVO
+             ========================================== -->
+        <section id="viewSetup" class="space-y-6">
+            <div class="glass-panel rounded-2xl p-5 sm:p-8 border border-emerald-500/30 relative overflow-hidden">
+                <div class="max-w-3xl space-y-3">
+                    <div class="inline-flex flex-wrap items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        <i class="fa-solid fa-user-lock"></i> GRADO 10° • EVALUACIÓN INDIVIDUAL • 1 SOLO INGRESO POR DISPOSITIVO
+                    </div>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-white leading-tight">
+                        Misión Científica: Dinámica y Alteración de los Ciclos Biogeoquímicos
+                    </h2>
+                    <p class="text-slate-300 text-xs sm:text-sm leading-relaxed">
+                        Durante <strong>60 minutos</strong> asumirás el rol de un científico investigador para resolver <strong>10 niveles secuenciales</strong>. Cada nivel consta de <strong>3 Pasos Obligatorios</strong>: Calibración del Simulador, Diagnóstico de Selección Múltiple y Redacción de Dictamen Científico (mínimo 4 líneas).
+                    </p>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 text-xs">
+                        <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 flex items-start gap-2.5">
+                            <i class="fa-solid fa-mobile-screen-button text-red-400 mt-0.5"></i>
+                            <span><strong>Acceso Único:</strong> Solo se permite 1 intento en este dispositivo. Una vez finalizada la prueba, quedará bloqueado.</span>
+                        </div>
+                        <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 flex items-start gap-2.5">
+                            <i class="fa-solid fa-list-check text-cyan-400 mt-0.5"></i>
+                            <span><strong>3 Pasos por Nivel:</strong> Simulación (≥80%), 2 preguntas estructuradas y 1 pregunta abierta argumentativa de 4 líneas.</span>
+                        </div>
+                        <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 flex items-start gap-2.5">
+                            <i class="fa-solid fa-ban text-amber-400 mt-0.5"></i>
+                            <span><strong>Seguridad Activa:</strong> Prohibido cambiar de pestaña, minimizar ventana o copiar/pegar textos.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Identificación del Estudiante -->
+            <div class="glass-panel rounded-2xl p-5 sm:p-6 space-y-4">
+                <div class="flex items-center gap-2.5 border-b border-slate-800 pb-3">
+                    <span class="w-6 h-6 rounded-full bg-emerald-500 text-slate-950 font-extrabold flex items-center justify-center text-xs">1</span>
+                    <h3 class="text-base sm:text-lg font-bold text-white">Datos del Estudiante Investigador (Grado 10°)</h3>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Apellidos y Nombres Completos *</label>
+                        <input type="text" id="studentNameInput" placeholder="Ej. Pantoja Martínez Juan Camilo" autocomplete="off"
+                            class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Curso / Grupo *</label>
+                        <select id="studentCourseInput" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
+                            <option value="Grado 10° A">Grado 10° A</option>
+                            <option value="Grado 10° B">Grado 10° B</option>
+                            <option value="Grado 10° C">Grado 10° C</option>
+                            <option value="Grado 10° Único">Grado 10° Único</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Selección de Rol Científico -->
+            <div class="glass-panel rounded-2xl p-5 sm:p-6 space-y-4">
+                <div class="flex items-center gap-2.5 border-b border-slate-800 pb-3">
+                    <span class="w-6 h-6 rounded-full bg-emerald-500 text-slate-950 font-extrabold flex items-center justify-center text-xs">2</span>
+                    <div>
+                        <h3 class="text-base sm:text-lg font-bold text-white">Selección de Especialidad Científica</h3>
+                        <p class="text-xs text-slate-400">Escoge el rol profesional desde el cual emitirás tus diagnósticos y soluciones ambientales.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5" id="rolesGridContainer"></div>
+            </div>
+
+            <!-- Botón de Inicio Único -->
+            <div class="glass-panel rounded-2xl p-5 border border-emerald-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="text-xs sm:text-sm text-slate-300 flex items-center gap-2.5">
+                    <i class="fa-solid fa-fingerprint text-emerald-400 text-xl shrink-0"></i>
+                    <span>Al pulsar el botón se registrará la <strong>huella única de este dispositivo</strong> y comenzará la cuenta regresiva de 60 minutos.</span>
+                </div>
+                <button onclick="startIndividualMission()" class="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-extrabold text-xs sm:text-sm tracking-wide shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-2 shrink-0">
+                    <i class="fa-solid fa-lock"></i> VINCULAR DISPOSITIVO E INICIAR (60 MIN)
+                </button>
+            </div>
+        </section>
+
+        <!-- ==========================================
+             VISTA 2: LABORATORIO DE 10 NIVELES (3 PASOS POR NIVEL)
+             ========================================== -->
+        <section id="viewLab" class="hidden space-y-5">
+
+            <!-- Mapa de Progresión Secuencial de 10 Niveles -->
+            <div class="glass-panel rounded-2xl p-3.5 sm:p-4">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-route text-emerald-400"></i> Progresión Secuencial Estricta (Completa los 3 Pasos para avanzar)
+                    </span>
+                    <span class="text-[11px] text-cyan-300 font-semibold" id="activeRoleBanner"></span>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 gap-2" id="levelsSequenceBar"></div>
+            </div>
+
+            <!-- Indicador Visual de los 3 Pasos del Nivel Actual -->
+            <div class="grid grid-cols-3 gap-2 sm:gap-4">
+                <div id="stepBadge1" class="glass-panel rounded-xl p-2.5 sm:p-3 border border-slate-700 flex items-center gap-2.5">
+                    <span class="w-6 h-6 rounded-full bg-slate-800 text-xs font-extrabold flex items-center justify-center shrink-0" id="stepIcon1">1</span>
+                    <div class="truncate">
+                        <span class="text-[10px] uppercase tracking-wider text-slate-400 block">Paso 1</span>
+                        <span class="text-xs font-bold text-white truncate block">Simulador (≥80%)</span>
+                    </div>
+                </div>
+                <div id="stepBadge2" class="glass-panel rounded-xl p-2.5 sm:p-3 border border-slate-700 flex items-center gap-2.5">
+                    <span class="w-6 h-6 rounded-full bg-slate-800 text-xs font-extrabold flex items-center justify-center shrink-0" id="stepIcon2">2</span>
+                    <div class="truncate">
+                        <span class="text-[10px] uppercase tracking-wider text-slate-400 block">Paso 2</span>
+                        <span class="text-xs font-bold text-white truncate block">Diagnóstico (2 Ítems)</span>
+                    </div>
+                </div>
+                <div id="stepBadge3" class="glass-panel rounded-xl p-2.5 sm:p-3 border border-slate-700 flex items-center gap-2.5">
+                    <span class="w-6 h-6 rounded-full bg-slate-800 text-xs font-extrabold flex items-center justify-center shrink-0" id="stepIcon3">3</span>
+                    <div class="truncate">
+                        <span class="text-[10px] uppercase tracking-wider text-slate-400 block">Paso 3</span>
+                        <span class="text-xs font-bold text-white truncate block">Dictamen (≥4 Líneas)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Área de Trabajo del Nivel -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+                <!-- Columna Izquierda (6 cols): Caso Ambiental + PASO 1 (Simulador) -->
+                <div class="lg:col-span-6 space-y-5">
+                    <!-- Caso y Fundamento -->
+                    <div class="glass-panel rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-cyan-400">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span class="px-3 py-1 rounded-full text-xs font-extrabold uppercase bg-cyan-500/20 text-cyan-300 border border-cyan-500/30" id="lvlBadge">
+                                NIVEL 1 DE 10
+                            </span>
+                            <span class="text-xs font-mono text-amber-300 bg-amber-950/60 border border-amber-500/30 px-2.5 py-1 rounded-lg">
+                                <i class="fa-solid fa-clock mr-1"></i> Tiempo sugerido nivel: <strong id="inlineLevelTimer">06:00</strong>
+                            </span>
+                        </div>
+
+                        <h2 class="text-lg sm:text-xl font-extrabold text-white leading-snug" id="lvlTitle"></h2>
+
+                        <div class="bg-red-950/40 border border-red-500/30 rounded-xl p-3.5 space-y-1">
+                            <div class="text-[11px] font-bold uppercase tracking-wider text-red-300 flex items-center gap-1.5">
+                                <i class="fa-solid fa-triangle-exclamation"></i> Situación de Riesgo Ambiental Detectada
+                            </div>
+                            <p class="text-xs sm:text-sm text-slate-200 leading-relaxed" id="lvlScenario"></p>
+                        </div>
+
+                        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-4 space-y-2.5">
+                            <div class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                                <i class="fa-solid fa-flask"></i> Fundamento Biogeoquímico y Reacciones (Grado 10°)
+                            </div>
+                            <p class="text-xs sm:text-sm text-slate-300 leading-relaxed" id="lvlTheory"></p>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1" id="lvlKeyFacts"></div>
+                        </div>
+                    </div>
+
+                    <!-- PASO 1: Simulador de Parámetros -->
+                    <div class="glass-panel rounded-2xl p-5 sm:p-6 space-y-4 border border-slate-800">
+                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                            <div>
+                                <span class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-400 block">PASO 1 DE 3 • SIMULACIÓN</span>
+                                <h3 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-sliders text-emerald-400"></i> Control de Factores de Alteración
+                                </h3>
+                                <p class="text-xs text-slate-400">Ajusta los parámetros hasta estabilizar el ciclo en <strong>80% o más</strong>.</p>
+                            </div>
+                            <span id="simBadgeStatus" class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-red-500/20 text-red-300 border border-red-500/30">
+                                ALTERADO
+                            </span>
+                        </div>
+
+                        <div class="bg-slate-950/90 p-3.5 rounded-xl border border-slate-800 space-y-2">
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="text-slate-400 font-semibold uppercase">Índice de Equilibrio Biogeoquímico</span>
+                                <span class="mono font-bold text-base text-emerald-400" id="simPercentText">0%</span>
+                            </div>
+                            <div class="w-full h-3 bg-slate-800 rounded-full overflow-hidden">
+                                <div id="simProgressBar" class="h-full transition-all duration-300 bg-red-500" style="width: 25%"></div>
+                            </div>
+                            <p class="text-[11px] sm:text-xs text-slate-300 italic" id="simFeedbackMsg"></p>
+                        </div>
+
+                        <div class="space-y-3" id="slidersBox"></div>
+                    </div>
+                </div>
+
+                <!-- Columna Derecha (6 cols): PASO 2 (Preguntas Simétricas) + PASO 3 (Pregunta Abierta 4 Líneas) -->
+                <div class="lg:col-span-6 space-y-5">
+
+                    <!-- PASO 2: Diagnóstico Analítico con Opciones de Extensión Equilibrada -->
+                    <div class="glass-panel rounded-2xl p-5 sm:p-6 space-y-4 border border-slate-800">
+                        <div class="border-b border-slate-800 pb-3">
+                            <span class="text-[10px] font-extrabold uppercase tracking-wider text-cyan-400 block">PASO 2 DE 3 • ANÁLISIS CIENTÍFICO</span>
+                            <h3 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-microscope text-cyan-400"></i> Diagnóstico de Procesos Biogeoquímicos
+                            </h3>
+                            <p class="text-xs text-slate-400">Analiza con rigor cada enunciado. Todas las opciones poseen una estructura y extensión equivalente.</p>
+                        </div>
+
+                        <div id="questionsBox" class="space-y-4"></div>
+                    </div>
+
+                    <!-- PASO 3: Pregunta Abierta Argumentativa (Mínimo 4 Líneas) -->
+                    <div class="glass-panel rounded-2xl p-5 sm:p-6 space-y-4 border border-slate-800">
+                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                            <div>
+                                <span class="text-[10px] font-extrabold uppercase tracking-wider text-purple-400 block">PASO 3 DE 3 • PRODUCCIÓN CIENTÍFICA ESCRITA</span>
+                                <h3 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-pen-nib text-purple-400"></i> Dictamen Investigativo de Mitigación
+                                </h3>
+                            </div>
+                            <span id="openQuestionBadge" class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                0 / 4 Líneas
+                            </span>
+                        </div>
+
+                        <div class="bg-slate-900/90 p-3.5 rounded-xl border border-slate-800 space-y-1.5">
+                            <p class="text-xs sm:text-sm font-bold text-white leading-relaxed" id="openQuestionPrompt"></p>
+                            <p class="text-[11px] text-slate-400">
+                                <i class="fa-solid fa-circle-info text-cyan-400 mr-1"></i>
+                                <strong>Requisito de validación:</strong> Redacta tu argumento técnico con tus propias palabras (copiar/pegar deshabilitado). Tu respuesta debe alcanzar <strong>al menos 4 líneas completas de extensión</strong> (mínimo 240 caracteres y 35 palabras con sentido científico).
+                            </p>
+                        </div>
+
+                        <div class="space-y-2">
+                            <textarea id="openAnswerInput" rows="5"
+                                placeholder="Escribe aquí tu análisis científico detallado explicando los procesos químicos, biológicos y las medidas de restauración (mínimo 4 líneas completas)..."
+                                oninput="onOpenAnswerInput()"
+                                class="lined-textarea w-full bg-slate-950 border border-slate-700 rounded-xl p-3.5 text-xs sm:text-sm text-white placeholder-slate-600 focus:outline-none focus:border-purple-400 resize-none"></textarea>
+
+                            <!-- Medidores en vivo de las 4 líneas -->
+                            <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] bg-slate-900/80 px-3 py-2 rounded-lg border border-slate-800">
+                                <div class="flex items-center gap-3">
+                                    <span id="lineCountIndicator" class="font-bold text-amber-400">Líneas redactadas: 0 / 4</span>
+                                    <span class="text-slate-600">|</span>
+                                    <span id="wordCountIndicator" class="text-slate-400">Palabras: 0 (mín. 35)</span>
+                                </div>
+                                <span id="charCountIndicator" class="mono text-slate-400">0 / 240 caract.</span>
+                            </div>
+                        </div>
+
+                        <!-- Alerta de Validación Integral de los 3 Pasos -->
+                        <div id="validationAlert" class="hidden rounded-xl p-3.5 text-xs sm:text-sm border"></div>
+
+                        <!-- Botón de Verificación de los 3 Pasos -->
+                        <button id="btnSubmitLevel" onclick="validateAndUnlockNextLevel()" class="w-full py-3.5 px-5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-extrabold text-xs sm:text-sm tracking-wide shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-unlock-keyhole"></i> VALIDAR LOS 3 PASOS Y DESBLOQUEAR SIGUIENTE NIVEL
+                        </button>
+                    </div>
+
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ==========================================
+             VISTA 3: BLOQUEO DE ACCESO ÚNICO Y REPORTE FINAL
+             ========================================== -->
+        <section id="viewReport" class="hidden space-y-6">
+            <!-- Aviso de Dispositivo Bloqueado (Un solo ingreso) -->
+            <div class="glass-panel rounded-2xl p-4 sm:p-5 border border-amber-500/40 bg-amber-950/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 no-print">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 text-lg shrink-0">
+                        <i class="fa-solid fa-lock"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-extrabold text-white uppercase tracking-wide">Sesión Finalizada • Dispositivo Bloqueado para Nuevos Ingresos</h3>
+                        <p class="text-xs text-slate-300">Esta evaluación permite únicamente un (1) ingreso por dispositivo. Puedes visualizar e imprimir tu acta oficial de resultados.</p>
+                    </div>
+                </div>
+                <span class="mono text-[11px] px-3 py-1 rounded-lg bg-slate-900 border border-slate-700 text-amber-300 shrink-0" id="deviceTokenBadge"></span>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-5 sm:p-8 border border-emerald-500/40 space-y-6">
+                <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-5">
+                    <div class="space-y-1">
+                        <span class="px-3 py-1 rounded-full text-xs font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            Acta Oficial de Evaluación Individual • Grado 10°
+                        </span>
+                        <h2 class="text-xl sm:text-3xl font-extrabold text-white print-text-dark" id="repStudentName"></h2>
+                        <p class="text-xs sm:text-sm text-slate-400" id="repRoleAndCourse"></p>
+                    </div>
+                    <div class="flex items-center gap-3 no-print">
+                        <button onclick="window.print()" class="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold transition flex items-center gap-2 shadow-lg">
+                            <i class="fa-solid fa-file-pdf"></i> Imprimir / Guardar PDF
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Indicadores Globales -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                        <span class="text-[11px] text-slate-400 block">Puntaje Final</span>
+                        <span class="text-xl sm:text-2xl font-extrabold text-emerald-400 mono" id="repTotalScore">0 PTS</span>
+                    </div>
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                        <span class="text-[11px] text-slate-400 block">Niveles Completados</span>
+                        <span class="text-xl sm:text-2xl font-extrabold text-cyan-400 mono" id="repLevelsCompleted">0 / 10</span>
+                    </div>
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                        <span class="text-[11px] text-slate-400 block">Tiempo Empleado</span>
+                        <span class="text-xl sm:text-2xl font-extrabold text-amber-300 mono" id="repTimeUsed">00:00</span>
+                    </div>
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                        <span class="text-[11px] text-slate-400 block">Salidas de Pestaña</span>
+                        <span class="text-xl sm:text-2xl font-extrabold text-red-400 mono" id="repTabStrikes">0</span>
+                    </div>
+                </div>
+
+                <!-- Bitácora de Seguridad -->
+                <div class="bg-slate-900/90 rounded-xl p-4 border border-slate-800 space-y-2">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-shield-halved"></i> Bitácora de Auditoría (Control de Pestañas, Portapapeles y Acceso Único)
+                    </h3>
+                    <div id="repSecurityLog" class="text-xs text-slate-300 space-y-1 font-mono max-h-40 overflow-y-auto"></div>
+                </div>
+
+                <!-- Desglose de los 10 Niveles con las Respuestas Abiertas del Paso 3 -->
+                <div class="space-y-3">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300">Evidencia de los 10 Niveles (Simulación, Diagnóstico y Respuestas Abiertas)</h3>
+                    <div class="space-y-3" id="repLevelsBreakdown"></div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ==========================================
+         MODAL DE ALERTA POR CAMBIO DE PESTAÑA
+         ========================================== -->
+    <div id="securityModal" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md hidden items-center justify-center p-4 no-print">
+        <div class="glass-panel rounded-2xl max-w-md w-full p-6 border-2 border-red-500 text-center space-y-4 shadow-2xl shadow-red-500/20">
+            <div class="w-16 h-16 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center mx-auto text-red-400 text-3xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h3 class="text-xl font-extrabold text-white">¡CAMBIO DE PESTAÑA O VENTANA DETECTADO!</h3>
+            <p class="text-xs sm:text-sm text-slate-300 leading-relaxed" id="securityModalDesc">
+                Se ha detectado que abandonaste la ventana activa de la evaluación. Recuerda que está deshabilitado cambiar de pestaña o copiar y pegar textos.
+            </p>
+            <div class="bg-red-950/60 border border-red-500/40 rounded-xl p-3 text-xs text-red-200 mono" id="securityModalCounter">
+                Alerta registrada (-25 Puntos de penalización)
+            </div>
+            <button onclick="acknowledgeSecurityWarning()" class="w-full py-3 rounded-xl bg-red-500 hover:bg-red-400 text-slate-950 font-extrabold text-xs uppercase tracking-wider transition">
+                REGRESAR INMEDIATAMENTE A LA EVALUACIÓN
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // =========================================================================
+        // 1. ROLES CIENTÍFICOS INDIVIDUALES (GRADO 10°)
+        // =========================================================================
+        const ROLES_10 = [
+            {
+                id: 'geoquimico_atm',
+                name: 'Geoquímico Atmosférico',
+                icon: 'fa-cloud-bolt',
+                color: 'text-cyan-400',
+                desc: 'Especialista en gases de efecto invernadero (CO₂, CH₄, N₂O), lluvia ácida (H₂SO₄, HNO₃) y balance radiativo troposférico.'
+            },
+            {
+                id: 'microbiologo_suelos',
+                name: 'Biotecnólogo y Microbiólogo Edáfico',
+                icon: 'fa-bacteria',
+                color: 'text-emerald-400',
+                desc: 'Experto en cinética enzimática bacteriana del suelo: fijación de N₂, nitrificación, desnitrificación y biorremediación.'
+            },
+            {
+                id: 'limnologo_marino',
+                name: 'Oceanógrafo y Limnólogo Químico',
+                icon: 'fa-water',
+                color: 'text-blue-400',
+                desc: 'Analiza el equilibrio ácido-base carbonato-bicarbonato oceánico, la eutrofización cultural y zonas hipóxicas.'
+            },
+            {
+                id: 'ingeniero_ambiental',
+                name: 'Ingeniero Químico Ambiental',
+                icon: 'fa-industry',
+                color: 'text-amber-400',
+                desc: 'Diseña reactores de desulfuración de gases, control de emisiones industriales y tratamiento terciario de efluentes.'
+            },
+            {
+                id: 'ecologo_cuencas',
+                name: 'Ecólogo de Ecosistemas e Hidrólogo',
+                icon: 'fa-tree',
+                color: 'text-lime-400',
+                desc: 'Modela balances hídricos de cuencas, recarga de acuíferos, deshielo del permafrost y acoplamiento biogeoquímico.'
+            }
+        ];
+
+        // =========================================================================
+        // 2. LOS 10 NIVELES CON 3 PASOS Y OPCIONES DE EXTENSIÓN SIMÉTRICA (SIN SESGO)
+        // =========================================================================
+        const LEVELS_10 = [
+            {
+                level: 1,
+                cycle: 'Carbono Rápido',
+                title: 'Nivel 1: Ciclo Rápido del Carbono — Fotosíntesis vs. Deforestación',
+                scenario: 'En una reserva forestal tropical la tala indiscriminada redujo un 65% la cobertura arbórea mientras aumentan las quemas. Los sensores reportan una caída crítica en la fijación primaria bruta y un incremento sostenido del CO₂ troposférico.',
+                theory: 'El ciclo biológico del carbono acopla dos procesos redox complementarios: la fotosíntesis endotérmica (6CO₂ + 6H₂O + hv → C₆H₁₂O₆ + 6O₂) que reduce el carbono inorgánico a hexosas, y la respiración celular aerobia (C₆H₁₂O₆ + 6O₂ → 6CO₂ + 6H₂O + ATP) que lo oxida. La deforestación suprime el sumidero vegetal y la combustión oxida abruptamente la biomasa acumulada durante décadas.',
+                facts: [
+                    { k: 'Reacción de Fijación', v: '6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂' },
+                    { k: 'Reservorio Afectado', v: 'Biomasa forestal y Troposfera' },
+                    { k: 'Factor de Alteración', v: 'Tala masiva e incendios forestales' }
+                ],
+                sliders: [
+                    { id: 'l1_tala', name: 'Tasa de Deforestación y Quema de Biomasa Forestal', initial: 85, weight: -0.55 },
+                    { id: 'l1_refor', name: 'Reforestación con Especies Nativas de Alta Fijación', initial: 20, weight: 0.50 },
+                    { id: 'l1_suelo', name: 'Conservación de Carbono Orgánico del Suelo (Humus)', initial: 25, weight: 0.45 }
+                ],
+                questions: [
+                    {
+                        q: '1. Desde la bioquímica del ciclo del carbono en Grado 10°, ¿qué transformación redox experimenta el átomo de carbono durante la fase oscura (Ciclo de Calvin)?',
+                        options: [
+                            'Se oxida de manera espontánea pasando de glucosa intracelular (C₆H₁₂O₆) hacia gas metano volátil (CH₄) que escapa por los estomas.',
+                            'Se reduce endotérmicamente, pasando de carbono inorgánico oxidado en el CO₂ (+4) hacia carbono orgánico reducido en la glucosa (C₆H₁₂O₆).',
+                            'Se disocia mediante fotólisis directa en el estroma cloroplástico, liberando carbono elemental sólido y moléculas de ozono estratosférico.',
+                            'Se combina irreversiblemente con el nitrógeno atmosférico para precipitar carbonatos insolubles dentro de las vacuolas radiculares.'
+                        ],
+                        correct: 1
+                    },
+                    {
+                        q: '2. ¿De qué manera los incendios forestales alteran simultáneamente los reservorios y los flujos dinámicos del ciclo biológico del carbono?',
+                        options: [
+                            'Aceleran la fijación estomática de dióxido de carbono en el suelo profundo y disminuyen la tasa de respiración celular de los descomponedores.',
+                            'Liberan por combustión en pocas horas el carbono orgánico almacenado durante décadas en la madera y eliminan la capacidad futura de absorción fotosintética.',
+                            'Transforman el monóxido de carbono atmosférico en minerales silicatados estables que neutralizan la acidez natural de las lluvias tropicales.',
+                            'Bloquean la radiación infrarroja solar de forma permanente, provocando el congelamiento inmediato de los suelos agrícolas circundantes.'
+                        ],
+                        correct: 1
+                    }
+                ],
+                openPrompt: 'Explica desde tu rol científico cómo se relacionan químicamente la fotosíntesis y la respiración celular en el balance del carbono, y sustenta una estrategia integral (mínimo 4 líneas) para restaurar el sumidero forestal en esta región afectada por la tala y quema.'
+            },
+            {
+                level: 2,
+                cycle: 'Carbono Oceánico',
+                title: 'Nivel 2: Ciclo Geológico del Carbono y Acidificación Oceánica',
+                scenario: 'La quema masiva de hidrocarburos fósiles ha elevado el CO₂ atmosférico a niveles críticos. Las estaciones oceanográficas registran un descenso del pH marino superficial (de 8.2 a 7.9) y degradación severa en arrecifes coralinos y conchas de moluscos.',
+                theory: 'Los océanos absorben cerca del 30% del CO₂ emitido por la humanidad. Al disolverse en el agua marina se establece el equilibrio reversible: CO₂(g) + H₂O(l) ⇌ H₂CO₃(ac) ⇌ H⁺(ac) + HCO₃⁻(ac). El incremento de iones hidronio (H⁺) reduce el pH y consume los iones carbonato (H⁺ + CO₃²⁻ → HCO₃⁻), impidiendo que los organismos calcificadores formen sus estructuras de carbonato de calcio (CaCO₃).',
+                facts: [
+                    { k: 'Equilibrio Marino', v: 'CO₂ + H₂O ⇌ H₂CO₃ ⇌ H⁺ + HCO₃⁻' },
+                    { k: 'Impacto Biológico', v: 'Déficit de CO₃²⁻ para formar CaCO₃' },
+                    { k: 'Factor de Alteración', v: 'Extracción y combustión de carbono fósil' }
+                ],
+                sliders: [
+                    { id: 'l2_fosil', name: 'Quema de Hidrocarburos Fósiles (Carbón, Petróleo y Gas)', initial: 90, weight: -0.60 },
+                    { id: 'l2_renov', name: 'Transición a Energías Limpias y Descarbonización Industrial', initial: 15, weight: 0.55 },
+                    { id: 'l2_azul', name: 'Conservación de Ecosistemas de Carbono Azul (Manglares/Praderas)', initial: 25, weight: 0.45 }
+                ],
+                questions: [
+                    {
+                        q: '1. Aplicando el principio de equilibrio químico al sistema CO₂ + H₂O ⇌ H₂CO₃ ⇌ H⁺ + HCO₃⁻, ¿qué ocurre en el océano al aumentar el CO₂ atmosférico?',
+                        options: [
+                            'El equilibrio se desplaza hacia los reactivos gaseosos, disminuyendo la acidez del mar y precipitando grandes bancos de carbonato de calcio puro.',
+                            'El equilibrio se desplaza hacia los productos, incrementando la concentración de iones H⁺ (menor pH) y agotando los iones carbonato (CO₃²⁻) disponibles.',
+                            'El ácido carbónico formado se evapora instantáneamente hacia la estratosfera sin modificar el potencial de hidrógeno del ecosistema marino.',
+                            'Los iones bicarbonato reaccionan con el cloruro de sodio marino produciendo hidróxido de sodio que alcaliniza las aguas superficiales.'
+                        ],
+                        correct: 1
+                    },
+                    {
+                        q: '2. ¿Por qué la explotación y combustión industrial de hidrocarburos rompe la estabilidad entre el ciclo geológico lento y el ciclo biológico rápido?',
+                        options: [
+                            'Porque transfiere en pocos siglos hacia la atmósfera carbono que estuvo secuestrado en la litósfera por millones de años, superando la tasa de absorción natural.',
+                            'Porque impide que las placas tectónicas realicen el proceso de subducción marina y detiene las emisiones naturales de las dorsales oceánicas.',
+                            'Porque convierte los depósitos subterráneos de piedra caliza en gas metano líquido que se filtra directamente hacia el núcleo terrestre.',
+                            'Porque acelera la formación de nuevos yacimientos de carbón mineral en la superficie de los bosques templados y boreales.'
+                        ],
+                        correct: 0
+                    }
+                ],
+                openPrompt: 'Argumenta detalladamente (mínimo 4 líneas) cuál es el mecanismo químico por el cual el exceso de CO₂ atmosférico termina debilitando los esqueletos calcáreos (CaCO₃) de corales y moluscos, y qué medidas energéticas y costeras propones para mitigar este fenómeno.'
+            },
+            {
+                level: 3,
+                cycle: 'Nitrógeno (Fijación)',
+                title: 'Nivel 3: Ciclo del Nitrógeno — Fijación Biológica vs. Esterilización Edáfica',
+                scenario: 'En un distrito agroindustrial el uso indiscriminado de bactericidas y fungicidas cúpricos arrasó con la microbiota del suelo. Los cultivos presentan clorosis generalizada y retraso del crecimiento por falta de nitrógeno asimilable, pese a que el aire contiene 78% de N₂.',
+                theory: 'El dinitrógeno gaseoso (N≡N) posee un triple enlace covalente apolar extremadamente estable (945 kJ/mol) que las plantas no pueden romper. El ingreso natural de nitrógeno al suelo depende de bacterias fijadoras (como Rhizobium en nódulos de leguminosas y Azotobacter) cuya enzima nitrogenasa reduce el N₂ a amonio (NH₄⁺), seguido de bacterias nitrificantes (Nitrosomonas y Nitrobacter) que lo oxidan a nitrito (NO₂⁻) y nitrato (NO₃⁻).',
+                facts: [
+                    { k: 'Barrera Química', v: 'Triple enlace covalente N≡N (945 kJ/mol)' },
+                    { k: 'Complejo Enzimático', v: 'Nitrogenasa en procariotas diazótrofos' },
+                    { k: 'Factor de Alteración', v: 'Agrotóxicos que destruyen la microbiota' }
+                ],
+                sliders: [
+                    { id: 'l3_biocida', name: 'Aplicación de Biocidas y Agroquímicos Esterilizantes del Suelo', initial: 85, weight: -0.55 },
+                    { id: 'l3_rhizob', name: 'Bioinoculación con Bacterias Simbióticas (Rhizobium / Azotobacter)', initial: 20, weight: 0.55 },
+                    { id: 'l3_rotac', name: 'Rotación Agroecológica con Leguminosas Fijadoras', initial: 20, weight: 0.45 }
+                ],
+                questions: [
+                    {
+                        q: '1. ¿Por qué las plantas vasculares son incapaces de incorporar directamente el abundante nitrógeno molecular (N₂) de la atmósfera a través de sus hojas?',
+                        options: [
+                            'Porque el nitrógeno gaseoso tiene una densidad superior a la del dióxido de carbono y se acumula exclusivamente en las capas altas de la estratosfera.',
+                            'Porque los dos átomos de nitrógeno están unidos mediante un triple enlace covalente apolar muy estable que las enzimas vegetales no pueden escindir.',
+                            'Porque el contacto directo del gas nitrógeno con los cloroplastos oxida la clorofila y detiene de inmediato la fotólisis del agua.',
+                            'Porque los estomas foliares poseen membranas selectivas que solo permiten el ingreso de gases nobles y vapor de agua saturado.'
+                        ],
+                        correct: 1
+                    },
+                    {
+                        q: '2. Una vez fijado el amonio (NH₄⁺) en el suelo, ¿qué secuencia metabólica realizan las bacterias nitrificantes para facilitar su asimilación radicular?',
+                        options: [
+                            'Oxidan aeróbicamente el ion amonio (NH₄⁺) primero hacia nitrito (NO₂⁻) mediante Nitrosomonas y luego hacia nitrato (NO₃⁻) mediante Nitrobacter.',
+                            'Reducen anaeróbicamente el amonio hasta convertirlo en ácido nítrico gaseoso que penetra directamente por la cutícula de los tallos leñosos.',
+                            'Transforman el amonio en fosfato de amonio cristalino mediante reacciones endotérmicas impulsadas por la radiación ultravioleta en la rizosfera.',
+                            'Polimerizan las moléculas de amonio junto con la celulosa vegetal para formar reservas subterráneas de almidón nitrogenado insoluble.'
+                        ],
+                        correct: 0
+                    }
+                ],
+                openPrompt: 'Redacta un informe técnico (mínimo 4 líneas) explicando la importancia biológica del nitrógeno para las macromoléculas celulares (proteínas y ácidos nucleicos) y cómo la asociación simbiótica entre leguminosas y bacterias Rhizobium permite recuperar suelos degradados por pesticidas.'
+            },
+            {
+                level: 4,
+                cycle: 'Nitrógeno (Lixiviación)',
+                title: 'Nivel 4: Alteración del Ciclo del Nitrógeno — Lixiviación de Nitratos y Emisión de N₂O',
+                scenario: 'Una cuenca agrícola intensiva presenta una severa sobrecarga de fertilizantes nitrogenados sintéticos (urea y nitrato de amonio). Los acuíferos subterráneos superan los límites tóxicos de nitratos (NO₃⁻) y los suelos encharcados emiten grandes flujos de óxido nitroso (N₂O).',
+                theory: 'La sobrecarga de fertilizantes industriales supera la capacidad de asimilación vegetal. El anión nitrato (NO₃⁻), al poseer carga negativa, es repelido por los coloides arcillosos del suelo y se lixivia hacia las aguas subterráneas, pudiendo causar metahemoglobinemia en humanos. Además, en suelos hipóxicos saturados de nitratos, la desnitrificación incompleta libera óxido nitroso (N₂O), un gas con potencial de calentamiento ~273 veces mayor al CO₂.',
+                facts: [
+                    { k: 'Anión Contaminante', v: 'Nitrato (NO₃⁻) altamente móvil y soluble' },
+                    { k: 'Gas Invernadero', v: 'Óxido nitroso (N₂O) por exceso de fertilización' },
+                    { k: 'Cierre del Ciclo', v: 'Desnitrificación completa (NO₃⁻ → N₂)' }
+                ],
+                sliders: [
+                    { id: 'l4_urea', name: 'Sobredosificación de Fertilizantes Sintéticos (Urea / Nitrato)', initial: 90, weight: -0.60 },
+                    { id: 'l4_precis', name: 'Agricultura de Precisión y Dosificación Controlada de Nutrientes', initial: 20, weight: 0.50 },
+                    { id: 'l4_ribera', name: 'Franjas Vegetales Riparias y Humedales Desnitrificantes', initial: 25, weight: 0.50 }
+                ],
+                questions: [
+                    {
+                        q: '1. Desde la química de suelos, ¿por qué el ion nitrato (NO₃⁻) se lixivia hacia los acuíferos subterráneos con mucha mayor facilidad que el catión amonio (NH₄⁺)?',
+                        options: [
+                            'Porque el ion nitrato posee carga eléctrica negativa y es repelido electrostáticamente por las arcillas y la materia orgánica del suelo, siendo arrastrado por el agua.',
+                            'Porque el ion nitrato reacciona con el cuarzo de la arena formando un gas pesado que desciende rápidamente por gravedad hasta el manto rocoso.',
+                            'Porque las raíces de las plantas segregan enzimas que expulsan selectivamente los nitratos hacia las capas freáticas más profundas del subsuelo.',
+                            'Porque el catión amonio se evapora de inmediato a temperatura ambiente mientras que el nitrato se congela dentro de los poros capilares.'
+                        ],
+                        correct: 0
+                    },
+                    {
+                        q: '2. ¿Qué función cumple el proceso de desnitrificación completa realizado por bacterias facultativas (como Pseudomonas) para mantener el equilibrio global del ciclo?',
+                        options: [
+                            'Oxida el nitrógeno atmosférico para producir lluvias ricas en ácido nítrico que fertilizan de manera espontánea las selvas ecuatoriales.',
+                            'Reduce los nitratos del suelo nuevamente hasta dinitrógeno gaseoso inocuo (N₂), devolviéndolo a la atmósfera y cerrando el ciclo biogeoquímico.',
+                            'Convierte los nitratos excedentes del agua subterránea en carbonato de calcio sólido para evitar la acidificación de los pozos profundos.',
+                            'Fija el óxido nitroso troposférico dentro de las hojas de las gramíneas para sintetizar lípidos de reserva energética.'
+                        ],
+                        correct: 1
+                    }
+                ],
+                openPrompt: 'Elabora un análisis escrito (mínimo 4 líneas) donde expliques los riesgos ambientales y de salud pública derivados del abuso de fertilizantes nitrogenados sintéticos (lixiviación de NO₃⁻ y emisiones de N₂O) y propongas un plan de manejo agronómico sostenible.'
+            },
+            {
+                level: 5,
+                cycle: 'Fósforo (Sedimentario)',
+                title: 'Nivel 5: Ciclo Sedimentario del Fósforo — Erosión Edáfica y Trampa Oceánica',
+                scenario: 'Una zona productora de alimentos presenta suelos agotados en ortofosfatos biodisponibles debido a la erosión hídrica. El fósforo arrastrado termina depositado en las cuencas oceánicas profundas, mientras las minas de roca fosfórica disminuyen sus reservas.',
+                theory: 'El ciclo del fósforo es estrictamente SEDIMENTARIO: carece de fase gaseosa atmosférica significativa. Su reservorio principal es el mineral apatita [Ca₅(PO₄)₃(F,Cl,OH)] en la litósfera. La meteorización libera iones ortofosfato (PO₄³⁻, H₂PO₄⁻), esenciales para formar ATP, ácidos nucleicos (ADN/ARN) y bicapas de fosfolípidos. Al no existir retorno atmosférico, el fósforo que se pierde por erosión hacia el fondo marino tarda millones de años en emerger por levantamiento geológico.',
+                facts: [
+                    { k: 'Naturaleza del Ciclo', v: 'Sedimentario Litosférico (SIN fase gaseosa)' },
+                    { k: 'Biomoléculas Clave', v: 'ATP, ADN, ARN y Fosfolípidos de membrana' },
+                    { k: 'Factor de Alteración', v: 'Erosión del suelo y pérdida en fondos marinos' }
+                ],
+                sliders: [
+                    { id: 'l5_erosion', name: 'Erosión Laminar del Suelo y Pérdida de Fosfatos por Escorrentía', initial: 85, weight: -0.55 },
+                    { id: 'l5_recicla', name: 'Economía Circular del Fósforo (Compostaje y Reciclaje Orgánico)', initial: 15, weight: 0.55 },
+                    { id: 'l5_micorri', name: 'Inoculación de Hongos Micorrízicos Solubilizadores de Fosfato', initial: 25, weight: 0.45 }
+                ],
+                questions: [
+                    {
+                        q: '1. ¿Cuál es la diferencia geoquímica estructural que distingue al ciclo del fósforo de los ciclos biogeoquímicos del carbono y del nitrógeno?',
+                        options: [
+                            'El fósforo circula exclusivamente a través de compuestos gaseosos estratosféricos que precipitan con las tormentas eléctricas.',
+                            'El ciclo del fósforo es de carácter sedimentario y carece de reservorios o fases gaseosas significativas en la atmósfera terrestre.',
+                            'El fósforo no participa en la estructura molecular de los seres vivos y actúa únicamente como un catalizador mineral externo.',
+                            'El fósforo se regenera continuamente en la superficie terrestre mediante la fusión nuclear del silicio expuesto a la radiación solar.'
+                        ],
+                        correct: 1
+                    },
+                    {
+                        q: '2. A nivel celular y metabólico, ¿por qué la deficiencia de iones ortofosfato (PO₄³⁻) detiene de forma crítica el desarrollo de cualquier organismo vivo?',
+                        options: [
+                            'Porque el grupo fosfato es indispensable para sintetizar el ATP energético, el esqueleto azúcar-fosfato del ADN/ARN y los fosfolípidos de membrana.',
+                            'Porque el ion fosfato es el único encargado de transportar el oxígeno gaseoso dentro de la molécula de clorofila y hemoglobina.',
+                            'Porque sin fosfato inorgánico el agua intracelular pierde sus puentes de hidrógeno y hierve a temperatura fisiológica normal.',
+                            'Porque los iones fosfato constituyen la cadena hidrocarbonada principal de todos los ácidos grasos saturados y ceras vegetales.'
+                        ],
+                        correct: 0
+                    }
+                ],
+                openPrompt: 'Fundamenta en un texto de al menos 4 líneas por qué el ciclo del fósforo es considerado un "cuello de botella" no renovable a escala humana debido a la ausencia de fase gaseosa, y explica qué prácticas agrícolas permiten conservar y reciclar este elemento en los suelos.'
+            },
+            {
+                level: 6,
+                cycle: 'Fósforo (Eutrofización)',
+                title: 'Nivel 6: Eutrofización Cultural e Hipoxia Severa en Ecosistemas Acuáticos',
+                scenario: 'Una ciénaga estratégica recibe vertimientos de aguas residuales urbanas con detergentes fosfatados y drenajes agrícolas. Una densa capa verde de cianobacterias cubre el espejo de agua, el oxígeno disuelto cayó a 0.5 mg/L y se registra mortandad masiva de peces.',
+                theory: 'En cuerpos de agua dulce el fósforo suele ser el nutriente limitante (Ley del Mínimo de Liebig). El ingreso antrópico de fosfatos (PO₄³⁻) desencadena una proliferación explosiva de microalgas (eutrofización cultural) que impide el paso de luz solar. Al morir esta biomasa algal masiva, se hunde y es degradada por bacterias heterótrofas aerobias que agotan el oxígeno disuelto (O₂) del agua, creando zonas muertas anóxicas.',
+                facts: [
+                    { k: 'Principio Ecológico', v: 'Fósforo como nutriente limitante acuático' },
+                    { k: 'Consecuencia Química', v: 'Agotamiento del Oxígeno Disuelto (Hipoxia/Anoxia)' },
+                    { k: 'Factor de Alteración', v: 'Detergentes fosfatados y aguas servidas sin tratar' }
+                ],
+                sliders: [
+                    { id: 'l6_vertim', name: 'Vertimiento de Aguas Residuales y Detergentes con Tripolifosfatos', initial: 90, weight: -0.60 },
+                    { id: 'l6_ptar', name: 'Plantas de Tratamiento Terciario con Remoción Química de Fósforo', initial: 15, weight: 0.55 },
+                    { id: 'l6_fito', name: 'Biofiltros y Humedales Artificiales con Macrófitas Captadoras', initial: 20, weight: 0.45 }
+                ],
+                questions: [
+                    {
+                        q: '1. En un lago afectado por eutrofización cultural, ¿cuál es la causa directa de que se agote el oxígeno disuelto en las capas medias y profundas del agua?',
+                        options: [
+                            'Los iones fosfato reaccionan químicamente con el oxígeno disuelto formando precipitados sólidos de pentóxido de difósforo en el sedimento.',
+                            'Al morir la superpoblación superficial de algas, las bacterias descomponedoras aerobias proliferan y consumen el oxígeno disuelto para oxidar esa biomasa.',
+                            'Las cianobacterias superficiales absorben todo el nitrógeno del agua y liberan gas metano que desplaza físicamente a las moléculas de agua.',
+                            'El aumento de temperatura generado por los detergentes hace que el agua se disocie en hidrógeno gaseoso y ozono que escapan al aire.'
+                        ],
+                        correct: 1
+                    },
+                    {
+                        q: '2. ¿Qué estrategia de ingeniería ambiental ataca directamente la causa raíz de la eutrofización cultural en ciénagas y embalses cercanos a ciudades?',
+                        options: [
+                            'Inyectar grandes volúmenes de herbicidas sintéticos al cuerpo de agua para hundir instantáneamente toda la vegetación flotante hacia el fondo.',
+                            'Sustituir los detergentes fosfatados e implementar tratamiento terciario de aguas residuales que precipite y recupere los ortofosfatos antes de su descarga.',
+                            'Dragado total de los sedimentos del lago para eliminar a todas las bacterias descomponedoras y peces bentónicos del ecosistema.',
+                            'Canalizar los ríos tributarios con concreto impermeable para que las aguas residuales lleguen con mayor velocidad hacia la ciénaga.'
+                        ],
+                        correct: 1
+                    }
+                ],
+                openPrompt: 'Describe paso a paso en un párrafo de mínimo 4 líneas la cadena de eventos ecológicos y bioquímicos que ocurren desde que ingresan detergentes con fosfatos (PO₄³⁻) a una ciénaga hasta que se produce la muerte de los peces por hipoxia, e indica cómo restaurar el ecosistema.'
+            },
+            {
+                level: 7,
+                cycle: 'Hidrológico',
+                title: 'Nivel 7: Ciclo Hidrológico — Evapotranspiración, Infiltración y Acuíferos',
+                scenario: 'En una cuenca hidrográfica se taló el bosque altoandino y se impermeabilizó el suelo con urbanizaciones y ganadería extensiva. En época de lluvias ocurren inundaciones torrenciales con deslizamientos, y en época seca se agotan los acueductos y pozos subterráneos.',
+                theory: 'El balance hídrico de una cuenca responde a: Precipitación (P) = Escorrentía Superficial (Es) + Evapotranspiración (ET) + Infiltración Subterránea (I). La vegetación arbórea amortigua el impacto de las gotas, mantiene la porosidad edáfica para que el agua percole recargando los acuíferos freáticos, y mediante la transpiración estomática recicla vapor de agua hacia la atmósfera sosteniendo las lluvias regionales.',
+                facts: [
+                    { k: 'Ecuación Hidrológica', v: 'P = Escorrentía + Evapotranspiración + Infiltración' },
+                    { k: 'Reserva Subterránea', v: 'Percolación hacia acuíferos freáticos' },
+                    { k: 'Factor de Alteración', v: 'Deforestación de cuenca e impermeabilización' }
+                ],
+                sliders: [
+                    { id: 'l7_asfalto', name: 'Impermeabilización Urbana y Compactación Ganadera del Suelo', initial: 85, weight: -0.55 },
+                    { id: 'l7_cuenca', name: 'Restauración de Bosques Protectores de Cabecera y Riberas', initial: 20, weight: 0.55 },
+                    { id: 'l7_drenaje', name: 'Infraestructura Verde y Zonas Permeables de Recarga de Acuíferos', initial: 20, weight: 0.45 }
+                ],
+                questions: [
+                    {
+                        q: '1. ¿Cómo se modifica el balance entre infiltración subterránea y escorrentía superficial cuando se deforesta una cuenca y se compacta su suelo?',
+                        options: [
+                            'Aumenta la percolación profunda hacia los acuíferos confinados y se reduce a cero el caudal superficial de los ríos durante el invierno.',
+                            'Cae drásticamente la infiltración hacia el nivel freático y se dispara la escorrentía superficial rápida, provocando inundaciones en lluvias y estiaje en época seca.',
+                            'Se incrementa la tasa de transpiración estomática del suelo desnudo, generando tormentas permanentes que estabilizan los caudales.',
+                            'El agua de lluvia permanece suspendida en forma de neblina perpetua debido a la pérdida de atracción gravitacional de la montaña.'
+                        ],
+                        correct: 1
+                    },
+                    {
+                        q: '2. Además de abastecer de agua a los seres vivos, ¿qué papel físico-químico cumple el ciclo hidrológico en la dinámica de los demás ciclos biogeoquímicos?',
+                        options: [
+                            'Actúa como una barrera aislante que impide cualquier reacción química entre los minerales de la litósfera y los gases de la atmósfera.',
+                            'Funciona como el solvente polar y vehículo de transporte universal que disuelve, meteoriza y moviliza los iones de C, N, P y S entre ecosistemas.',
+                            'Transforma directamente las moléculas de agua en átomos de nitrógeno y fósforo mediante cambios de estado físico en las nubes.',
+                            'Elimina permanentemente todos los nutrientes minerales de la biosfera al evaporarlos hacia el espacio exterior durante el verano.'
+                        ],
+                        correct: 1
+                    }
+                ],
+                openPrompt: 'Explica con rigor científico (mínimo 4 líneas) por qué paradójicamente la deforestación y compactación de una cuenca hidrográfica provocan tanto inundaciones severas en invierno como sequías de pozos y ríos en verano, y qué medidas ecohidrológicas solucionan esta problemática.'
+            },
+            {
+                level: 8,
+                cycle: 'Azufre (Lluvia Ácida)',
+                title: 'Nivel 8: Ciclo del Azufre — Oxidación del SO₂ y Lluvia Ácida (H₂SO₄)',
+                scenario: 'Un corredor industrial quema carbón mineral y diésel pesado con alto contenido de azufre sin sistemas de lavado de gases. Las precipitaciones en la región presentan un pH de 3.8, causando quemaduras foliares, acidificación de lagos y lixiviación de cationes nutritivos del suelo.',
+                theory: 'El azufre es vital para la síntesis de aminoácidos como cisteína y metionina, cuyos puentes disulfuro (-S-S-) estabilizan las proteínas. Sin embargo, la combustión de fósiles azufrados libera dióxido de azufre (SO₂) a la troposfera, donde se oxida fotoquímicamente a trióxido de azufre (2SO₂ + O₂ → 2SO₃) y reacciona con el agua de las nubes formando ácido sulfúrico (SO₃ + H₂O → H₂SO₄), precipitando como deposición ácida.',
+                facts: [
+                    { k: 'Estequiometría Ácida', v: '2SO₂ + O₂ → 2SO₃  |  SO₃ + H₂O → H₂SO₄' },
+                    { k: 'Función Celular', v: 'Puentes disulfuro en proteínas (Cisteína/Metionina)' },
+                    { k: 'Factor de Alteración', v: 'Emisiones industriales de SO₂ sin desulfuración' }
+                ],
+                sliders: [
+                    { id: 'l8_carbon', name: 'Emisión Industrial de Dióxido de Azufre (SO₂) sin Filtrado', initial: 90, weight: -0.60 },
+                    { id: 'l8_scrub', name: 'Torres de Desulfuración de Gases con Caliza (Scrubbers: CaCO₃)', initial: 15, weight: 0.60 },
+                    { id: 'l8_encal', name: 'Restauración y Encalado Controlado de Suelos Acidificados', initial: 25, weight: 0.40 }
+                ],
+                questions: [
+                    {
+                        q: '1. ¿Qué secuencia de reacciones químicas en la atmósfera explica la formación de lluvia ácida sulfúrica a partir de emisiones termoeléctricas de carbón?',
+                        options: [
+                            'El azufre elemental reacciona con el nitrógeno del aire formando amoníaco alcalino (NH₃) que luego se condensa como sulfuro de hidrógeno.',
+                            'El dióxido de azufre (SO₂) se oxida con el oxígeno atmosférico a trióxido de azufre (SO₃), el cual reacciona con el agua formando ácido sulfúrico (H₂SO₄).',
+                            'El gas metano industrial absorbe átomos de azufre de las nubes y precipita en forma de sulfato de sodio neutro sobre las hojas de los bosques.',
+                            'El dióxido de azufre rompe las moléculas de dióxido de carbono liberando ácido clorhídrico concentrado y oxígeno puro en la estratosfera.'
+                        ],
+                        correct: 1
+                    },
+                    {
+                        q: '2. ¿Cómo operan químicamente los lavadores de gases (scrubbers) que inyectan carbonato de calcio (CaCO₃) en las chimeneas industriales?',
+                        options: [
+                            'Ejecutan una reacción ácido-base donde el carbonato básico neutraliza y captura el SO₂ ácido, transformándolo en sulfito/sulfato de calcio sólido (yeso).',
+                            'Enfrían el humo industrial hasta licuar el dióxido de carbono, permitiendo que el dióxido de azufre salga libremente sin producir olor.',
+                            'Convierten el dióxido de azufre en gas hidrógeno inflamable que se reutiliza para calentar las calderas de la planta termoeléctrica.',
+                            'Disuelven las partículas de hollín en ácido nítrico concentrado para verterlas directamente en los ríos cercanos sin pasar por la atmósfera.'
+                        ],
+                        correct: 0
+                    }
+                ],
+                openPrompt: 'Redacta un dictamen de Ingeniería Química Ambiental (mínimo 4 líneas) donde expliques las reacciones de formación del ácido sulfúrico (H₂SO₄) en la troposfera, sus efectos sobre los suelos/vegetación y el funcionamiento del sistema de desulfuración industrial para evitar la lluvia ácida.'
+            },
+            {
+                level: 9,
+                cycle: 'Oxígeno y Ozono',
+                title: 'Nivel 9: Ciclo del Oxígeno — Fotólisis Fotosintética y Capa de Ozono (O₃)',
+                scenario: 'El monitoreo atmosférico reporta dos alteraciones simultáneas en el ciclo del oxígeno: destrucción catalítica del ozono estratosférico protector (O₃) por fugas de gases halogenados (CFCs) y formación de smog fotoquímico con ozono troposférico irritante en áreas urbanas.',
+                theory: 'El oxígeno libre (O₂, 21% de la atmósfera) proviene de la fotólisis del agua (2H₂O → 4H⁺ + 4e⁻ + O₂) en la fase luminosa de la fotosíntesis vegetal y fitoplanctónica. En la estratosfera, la radiación UV impulsa el ciclo de Chapman (O₂ + hv → 2O•; O• + O₂ ⇌ O₃), formando la capa de ozono que filtra los rayos UV-B mutagénicos. Sin embargo, los radicales libres de cloro (Cl•) liberados por los CFCs destruyen en cadena miles de moléculas de O₃.',
+                facts: [
+                    { k: 'Origen del O₂ Libre', v: 'Fotólisis del agua en la fotosíntesis' },
+                    { k: 'Equilibrio de Chapman', v: 'O₂ + UV → 2O•  |  O• + O₂ ⇌ O₃' },
+                    { k: 'Factor de Alteración', v: 'Radicales Cl• de CFCs y emisiones de NOx/COV' }
+                ],
+                sliders: [
+                    { id: 'l9_cfc', name: 'Emisión de Compuestos Clorofluorocarbonados (CFCs) y Óxidos de Nitrógeno', initial: 85, weight: -0.55 },
+                    { id: 'l9_montr', name: 'Control Estricto de Gases Refrigerantes y Filtros Catalíticos Urbanos', initial: 20, weight: 0.55 },
+                    { id: 'l9_fito', name: 'Protección del Fitoplancton Marino y Bosques Productores de O₂', initial: 25, weight: 0.45 }
+                ],
+                questions: [
+                    {
+                        q: '1. ¿Por qué un único radical libre de cloro (Cl•) desprendido de una molécula de CFC en la estratosfera puede destruir hasta 100.000 moléculas de ozono (O₃)?',
+                        options: [
+                            'Porque el átomo de cloro actúa como un catalizador cíclico que rompe el O₃ formando ClO• y luego se regenera intacto al reaccionar con un oxígeno atómico.',
+                            'Porque el cloro gaseoso posee una temperatura extremadamente baja que congela instantáneamente toda la capa de ozono convirtiéndola en hielo seco.',
+                            'Porque cada átomo de cloro se divide continuamente por fisión nuclear en la estratosfera multiplicando su masa de manera exponencial.',
+                            'Porque el cloro reacciona con el vapor de agua de las nubes formando una película opaca que impide que el sol ilumine la estratosfera.'
+                        ],
+                        correct: 0
+                    },
+                    {
+                        q: '2. ¿Por qué se afirma en ciencias ambientales que el ozono (O₃) presenta un comportamiento dual según la capa atmosférica en la que se encuentre?',
+                        options: [
+                            'Porque en la estratosfera actúa como un escudo vital que filtra la radiación ultravioleta, mientras que en la troposfera es un contaminante oxidante tóxico.',
+                            'Porque en la estratosfera es un líquido azulado que produce lluvia benéfica y en la troposfera se transforma en un sólido metálico pesado.',
+                            'Porque durante el día absorbe dióxido de carbono como las plantas y durante la noche emite metano que calienta las ciudades.',
+                            'Porque en los polos terrestres sirve para la respiración celular de los mamíferos y en el ecuador terrestre destruye la clorofila marina.'
+                        ],
+                        correct: 0
+                    }
+                ],
+                openPrompt: 'Explica en un texto argumentativo de al menos 4 líneas cuál es la diferencia funcional entre el ozono estratosférico y el ozono troposférico, cómo participan la fotosíntesis y los radicales libres de cloro (CFCs) en este ciclo, y cómo proteger ambos niveles atmosféricos.'
+            },
+            {
+                level: 10,
+                cycle: 'Acoplamiento Global',
+                title: 'Nivel 10: Síntesis Biogeoquímica — Deshielo del Permafrost y Crisis Multi-Ciclo',
+                scenario: 'ALERTA PLANETARIA NIVEL 10: El calentamiento global está descongelando el permafrost boreal y calentando los humedales tropicales. Las arqueas metanogénicas liberan enormes volúmenes de metano (CH₄), desestabilizando en cascada los ciclos de C, N, P, S, O y H₂O.',
+                theory: 'Los ciclos biogeoquímicos están acoplados y forman un sistema planetario único. El deshielo del permafrost genera un bucle de retroalimentación positiva: el aumento de temperatura descongela suelos orgánicos milenarios; los microorganismos anaerobios los degradan liberando metano (CH₄) y CO₂; esto intensifica aún más el efecto invernadero, acelera lluvias torrenciales del ciclo hidrológico, incrementa el arrastre de N y P hacia los mares (eutrofización) y desoxigena los océanos.',
+                facts: [
+                    { k: 'Dinámica Sistémica', v: 'Retroalimentación Positiva Climática (CH₄ y CO₂)' },
+                    { k: 'Interconexión', v: 'Acoplamiento estequiométrico C - H - O - N - P - S' },
+                    { k: 'Meta Final', v: 'Estabilización Homeostática de la Biosfera' }
+                ],
+                sliders: [
+                    { id: 'l10_metano', name: 'Emisiones Globales de Metano (CH₄) y Gases de Efecto Invernadero', initial: 90, weight: -0.60 },
+                    { id: 'l10_biogas', name: 'Captura Energética de Biogás y Descarbonización Mundial', initial: 15, weight: 0.55 },
+                    { id: 'l10_restau', name: 'Restauración Integral de Biomas Terrestres, Humedales y Océanos', initial: 20, weight: 0.50 }
+                ],
+                questions: [
+                    {
+                        q: '1. ¿Por qué la liberación de metano (CH₄) por el deshielo del permafrost ártico constituye un peligroso "bucle de retroalimentación positiva"?',
+                        options: [
+                            'Porque genera consecuencias positivas para la agricultura mundial al fertilizar automáticamente todos los desiertos con hielo derretido.',
+                            'Porque el proceso se autoamplifica: el calentamiento derrite el suelo congelado, liberando más gases invernadero (CH₄ y CO₂) que producen aún más calentamiento.',
+                            'Porque el gas metano liberado refleja la luz solar de regreso al espacio exterior, enfriando el planeta hasta alcanzar una nueva era glacial.',
+                            'Porque las arqueas metanogénicas consumen todo el dióxido de carbono de la atmósfera y lo transforman en roca granítica estable.'
+                        ],
+                        correct: 1
+                    },
+                    {
+                        q: '2. Como conclusión de los 10 niveles, ¿cómo se demuestra que los ciclos del Carbono, Agua, Nitrógeno, Fósforo y Azufre están acoplados en la naturaleza?',
+                        options: [
+                            'Porque cada elemento químico se transforma en otro elemento distinto mediante reacciones de alquimia biológica dentro de las raíces vegetales.',
+                            'Porque la alteración de un ciclo (como el calentamiento por carbono o lluvias extremas) modifica el pH, la temperatura y el arrastre de N, P y S en toda la biosfera.',
+                            'Porque todos los ciclos dependen exclusivamente de las erupciones volcánicas submarinas sin intervención alguna de los microorganismos.',
+                            'Porque al terminar un ciclo biogeoquímico los átomos desaparecen por completo del planeta y deben ser reemplazados por meteoritos.'
+                        ],
+                        correct: 1
+                    }
+                ],
+                openPrompt: 'Como conclusión de tu misión científica de Grado 10°, redacta una síntesis integradora (mínimo 4 líneas) explicando cómo la alteración de un solo ciclo biogeoquímico desencadena efectos en cascada sobre los demás ciclos y cuál es el compromiso de tu profesión científica para mantener la homeostasis planetaria.'
+            }
+        ];
+
+        // =========================================================================
+        // 3. CONTROL DE ACCESO ÚNICO POR DISPOSITIVO Y ESTADO PERSISTENTE
+        // =========================================================================
+        const STORAGE_KEY = 'biogeolab_g10_single_access_v3';
+        const DEVICE_LOCK_KEY = 'biogeolab_g10_device_locked_token';
+        const LEVEL_PACING_SECONDS = 360; // 6 min sugeridos por nivel
+
+        // Criterios estrictos para validar "al menos 4 líneas" en el Paso 3
+        const MIN_OPEN_CHARS = 240; // ~4 líneas completas de 60 caracteres
+        const MIN_OPEN_WORDS = 35;  // Mínimo 35 palabras reales
+
+        let globalTimerInterval = null;
+        let lastWarningTimestamp = 0;
+
+        let state = {
+            deviceToken: '',
+            accessRegistered: false, // Una vez true, este dispositivo ya usó su único ingreso
+            finished: false,
+            studentName: '',
+            studentCourse: 'Grado 10° A',
+            selectedRoleId: 'geoquimico_atm',
+            remainingGlobalSeconds: 3600,
+            currentLevelSeconds: LEVEL_PACING_SECONDS,
+            currentLevelIdx: 0,
+            totalScore: 0,
+            tabStrikes: 0,
+            securityLogs: [],
+            levels: LEVELS_10.map(() => ({
+                completed: false,
+                stability: 24,
+                answers: [null, null],
+                openAnswer: '',
+                attempts: 0,
+                pointsEarned: 0,
+                timeSpentSeconds: 0
+            })),
+            sliders: {}
+        };
+
+        function generateDeviceFingerprint() {
+            let existing = localStorage.getItem(DEVICE_LOCK_KEY);
+            if (!existing) {
+                const navInfo = [
+                    navigator.userAgent,
+                    screen.width,
+                    screen.height,
+                    navigator.language,
+                    Intl.DateTimeFormat().resolvedOptions().timeZone
+                ].join('|');
+                let hash = 0;
+                for (let i = 0; i < navInfo.length; i++) {
+                    hash = ((hash << 5) - hash) + navInfo.charCodeAt(i);
+                    hash |= 0;
+                }
+                existing = 'DEV-' + Math.abs(hash).toString(16).toUpperCase() + '-' + Date.now().toString(36).toUpperCase().slice(-4);
+                localStorage.setItem(DEVICE_LOCK_KEY, existing);
+            }
+            return existing;
+        }
+
+        function initSlidersDefaults() {
+            LEVELS_10.forEach(lvl => {
+                lvl.sliders.forEach(s => {
+                    if (state.sliders[s.id] === undefined) {
+                        state.sliders[s.id] = s.initial;
+                    }
+                });
+            });
+        }
+
+        function saveState() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+                // Respaldo adicional en sessionStorage y cookie local para impedir reinicio fácil
+                sessionStorage.setItem(STORAGE_KEY, 'LOCKED');
+                document.cookie = `${DEVICE_LOCK_KEY}=${state.deviceToken}; max-age=31536000; path=/; SameSite=Strict`;
+            } catch (e) {}
+        }
+
+        function loadState() {
+            state.deviceToken = generateDeviceFingerprint();
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (parsed && parsed.levels && parsed.levels.length === 10) {
+                        state = { ...state, ...parsed };
+                    }
+                }
+            } catch (e) {}
+            initSlidersDefaults();
+        }
+
+        // =========================================================================
+        // 4. PROTECCIÓN ANTIFRAUDE: SIN CAMBIO DE PESTAÑA NI COPIAR/PEGAR
+        // =========================================================================
+        function setupAntiCheatProtection() {
+            // Bloquear atajos de teclado (Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+A, Ctrl+U, F12)
+            document.addEventListener('keydown', (e) => {
+                if (
+                    (e.ctrlKey || e.metaKey) &&
+                    ['c', 'v', 'x', 'u', 's', 'a'].includes(e.key.toLowerCase())
+                ) {
+                    e.preventDefault();
+                    logSecurityEvent('Intento bloqueado de comando de teclado (Ctrl+' + e.key.toUpperCase() + ').');
+                    return false;
+                }
+                if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && ['I', 'J', 'C'].includes(e.key.toUpperCase()))) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+
+            // Bloquear eventos de portapapeles y arrastre en todo el documento
+            ['copy', 'cut', 'paste', 'dragstart', 'drop'].forEach(evtName => {
+                document.addEventListener(evtName, (e) => {
+                    e.preventDefault();
+                    logSecurityEvent(`Intento bloqueado de ${evtName.toUpperCase()} texto.`);
+                    return false;
+                });
+            });
+
+            // Detectar cambio de pestaña o minimización
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden && state.accessRegistered && !state.finished) {
+                    triggerTabStrike('Salida de la pestaña activa o minimización del navegador.');
+                }
+            });
+
+            // Detectar pérdida de foco de ventana
+            window.addEventListener('blur', () => {
+                if (state.accessRegistered && !state.finished) {
+                    triggerTabStrike('Pérdida de foco de la ventana de evaluación (cambio de aplicación).');
+                }
+            });
+        }
+
+        function logSecurityEvent(msg) {
+            if (!state.accessRegistered || state.finished) return;
+            const timeStr = formatTime(3600 - state.remainingGlobalSeconds);
+            state.securityLogs.push(`[Min ${timeStr}] ${msg}`);
+            saveState();
+        }
+
+        function triggerTabStrike(reason) {
+            const now = Date.now();
+            if (now - lastWarningTimestamp < 1500) return;
+            lastWarningTimestamp = now;
+
+            state.tabStrikes++;
+            const penalty = 25;
+            state.totalScore = Math.max(0, state.totalScore - penalty);
+
+            const timeStr = formatTime(3600 - state.remainingGlobalSeconds);
+            state.securityLogs.push(`[ALERTA DE PESTAÑA #${state.tabStrikes} - Min ${timeStr}] ${reason} (-${penalty} PTS)`);
+            saveState();
+            updateTopBarUI();
+
+            const modal = document.getElementById('securityModal');
+            document.getElementById('securityModalCounter').textContent = `Alerta #${state.tabStrikes} registrada (-${penalty} Puntos de penalización)`;
+            document.getElementById('securityModalDesc').textContent = `Motivo: ${reason} En esta evaluación de Grado 10° está prohibido cambiar de pestaña o usar copiar/pegar.`;
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function acknowledgeSecurityWarning() {
+            const modal = document.getElementById('securityModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // =========================================================================
+        // 5. CONFIGURACIÓN INICIAL (SOLO SI EL DISPOSITIVO NO HA INGRESADO ANTES)
+        // =========================================================================
+        function renderSetupView() {
+            const container = document.getElementById('rolesGridContainer');
+            container.innerHTML = '';
+
+            ROLES_10.forEach(role => {
+                const isSelected = state.selectedRoleId === role.id;
+                const card = document.createElement('div');
+                card.className = `role-card cursor-pointer rounded-xl p-4 border border-slate-800 bg-slate-900/80 flex flex-col justify-between gap-2.5 ${isSelected ? 'selected' : ''}`;
+                card.onclick = () => {
+                    state.selectedRoleId = role.id;
+                    renderSetupView();
+                };
+
+                card.innerHTML = `
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-9 h-9 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center ${role.color} shrink-0">
+                                <i class="fa-solid ${role.icon} text-base"></i>
+                            </div>
+                            <h4 class="font-bold text-xs sm:text-sm text-white">${role.name}</h4>
+                        </div>
+                        <div class="w-5 h-5 rounded-full border ${isSelected ? 'border-emerald-400 bg-emerald-500 text-slate-950' : 'border-slate-600'} flex items-center justify-center text-xs shrink-0">
+                            ${isSelected ? '<i class="fa-solid fa-check"></i>' : ''}
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-400 leading-relaxed">${role.desc}</p>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function startIndividualMission() {
+            if (state.accessRegistered) {
+                alert('Este dispositivo ya tiene un ingreso registrado. Serás dirigido a tu sesión actual.');
+                if (state.finished) showReportView();
+                else showLabView();
+                return;
+            }
+
+            const nameInput = document.getElementById('studentNameInput').value.trim();
+            const courseInput = document.getElementById('studentCourseInput').value;
+
+            if (nameInput.length < 5) {
+                alert('Por favor escribe tus Apellidos y Nombres completos antes de vincular este dispositivo.');
+                document.getElementById('studentNameInput').focus();
+                return;
+            }
+
+            state.studentName = nameInput;
+            state.studentCourse = courseInput;
+            state.accessRegistered = true;
+            state.securityLogs.push(`[Min 00:00] Dispositivo vinculado con huella única (${state.deviceToken}). Ingreso único bloqueado para nuevos registros.`);
+
+            saveState();
+
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            }
+
+            showLabView();
+        }
+
+        // =========================================================================
+        // 6. CRONÓMETROS (60 MIN GLOBAL / 6 MIN SUGERIDOS POR NIVEL)
+        // =========================================================================
+        function formatTime(totalSecs) {
+            const m = Math.floor(Math.max(0, totalSecs) / 60);
+            const s = Math.max(0, totalSecs) % 60;
+            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
+        function startTimers() {
+            if (globalTimerInterval) clearInterval(globalTimerInterval);
+            updateTimerDisplays();
+
+            globalTimerInterval = setInterval(() => {
+                if (!state.accessRegistered || state.finished) return;
+
+                if (state.remainingGlobalSeconds > 0) {
+                    state.remainingGlobalSeconds--;
+                    const currLvl = state.levels[state.currentLevelIdx];
+                    if (currLvl && !currLvl.completed) {
+                        currLvl.timeSpentSeconds++;
+                    }
+                    if (state.currentLevelSeconds > 0) {
+                        state.currentLevelSeconds--;
+                    }
+
+                    updateTimerDisplays();
+                    if (state.remainingGlobalSeconds % 4 === 0) saveState();
+                } else {
+                    clearInterval(globalTimerInterval);
+                    state.finished = true;
+                    state.securityLogs.push('[Min 60:00] Tiempo reglamentario de 1 hora agotado. Sesión cerrada y sellada en este dispositivo.');
+                    saveState();
+                    alert('¡Tiempo cumplido (60 minutos)! La sesión se ha cerrado y se ha generado tu acta final de resultados.');
+                    showReportView();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplays() {
+            const globalEl = document.getElementById('globalTimerDisplay');
+            const lvlHeaderEl = document.getElementById('levelTimerDisplay');
+            const lvlInlineEl = document.getElementById('inlineLevelTimer');
+
+            globalEl.textContent = formatTime(state.remainingGlobalSeconds);
+            const formattedLvl = formatTime(state.currentLevelSeconds);
+            if (lvlHeaderEl) lvlHeaderEl.textContent = formattedLvl;
+            if (lvlInlineEl) lvlInlineEl.textContent = formattedLvl;
+
+            const box = document.getElementById('globalTimerBox');
+            if (state.remainingGlobalSeconds <= 600) {
+                box.classList.replace('border-amber-500/40', 'border-red-500');
+                globalEl.classList.replace('text-amber-300', 'text-red-400');
+            }
+        }
+
+        // =========================================================================
+        // 7. GESTIÓN DE LOS 10 NIVELES Y VALIDACIÓN DE LOS 3 PASOS POR NIVEL
+        // =========================================================================
+        function showLabView() {
+            document.getElementById('viewSetup').classList.add('hidden');
+            document.getElementById('viewReport').classList.add('hidden');
+            document.getElementById('viewLab').classList.remove('hidden');
+
+            const roleObj = ROLES_10.find(r => r.id === state.selectedRoleId) || ROLES_10[0];
+            document.getElementById('headerStudentInfo').textContent = `${state.studentName} • ${state.studentCourse}`;
+            document.getElementById('activeRoleBanner').innerHTML = `<i class="fa-solid ${roleObj.icon} mr-1"></i> Rol: ${roleObj.name}`;
+
+            const firstIncomplete = state.levels.findIndex(l => !l.completed);
+            if (firstIncomplete !== -1) {
+                state.currentLevelIdx = firstIncomplete;
+            } else {
+                state.finished = true;
+                saveState();
+                showReportView();
+                return;
+            }
+
+            updateTopBarUI();
+            renderLevelsSequenceBar();
+            loadActiveLevel(state.currentLevelIdx);
+            startTimers();
+        }
+
+        function updateTopBarUI() {
+            const completedCount = state.levels.filter(l => l.completed).length;
+            document.getElementById('headerProgress').textContent = `Nivel ${Math.min(10, completedCount + 1)} / 10`;
+            document.getElementById('headerScore').textContent = `${state.totalScore} PTS`;
+            document.getElementById('headerStrikes').textContent = `${state.tabStrikes}`;
+        }
+
+        function renderLevelsSequenceBar() {
+            const bar = document.getElementById('levelsSequenceBar');
+            bar.innerHTML = '';
+
+            LEVELS_10.forEach((lvl, idx) => {
+                const st = state.levels[idx];
+                const isCurrent = idx === state.currentLevelIdx;
+                const isLocked = !st.completed && !isCurrent;
+
+                let cls = 'locked bg-slate-900 border-slate-800 text-slate-500';
+                let iconHtml = '<i class="fa-solid fa-lock text-[10px]"></i>';
+
+                if (st.completed) {
+                    cls = 'completed text-emerald-300';
+                    iconHtml = '<i class="fa-solid fa-circle-check text-emerald-400 text-xs"></i>';
+                } else if (isCurrent) {
+                    cls = 'active text-cyan-300';
+                    iconHtml = '<i class="fa-solid fa-spinner fa-spin text-cyan-400 text-xs"></i>';
+                }
+
+                const btn = document.createElement('button');
+                btn.className = `level-pill rounded-xl p-2 border text-left flex flex-col justify-between gap-1 ${cls}`;
+                btn.onclick = () => {
+                    if (isLocked) {
+                        alert(`🔒 NIVEL BLOQUEADO: Debes completar los 3 Pasos del Nivel ${state.currentLevelIdx + 1} antes de poder desbloquear el Nivel ${lvl.level}.`);
+                        return;
+                    }
+                    if (st.completed && idx !== state.currentLevelIdx) {
+                        alert(`✅ El Nivel ${lvl.level} (${lvl.cycle}) ya fue completado y sellado. Continúa resolviendo el Nivel ${state.currentLevelIdx + 1}.`);
+                    }
+                };
+
+                btn.innerHTML = `
+                    <div class="flex items-center justify-between w-full">
+                        <span class="text-[10px] font-extrabold uppercase">Niv. ${lvl.level}</span>
+                        ${iconHtml}
+                    </div>
+                    <span class="text-[11px] font-bold text-white truncate block">${lvl.cycle}</span>
+                `;
+                bar.appendChild(btn);
+            });
+        }
+
+        function loadActiveLevel(idx) {
+            state.currentLevelIdx = idx;
+            const lvl = LEVELS_10[idx];
+            const st = state.levels[idx];
+
+            if (st.timeSpentSeconds === 0) {
+                state.currentLevelSeconds = LEVEL_PACING_SECONDS;
+            }
+
+            document.getElementById('lvlBadge').textContent = `NIVEL ${lvl.level} DE 10 • ${lvl.cycle.toUpperCase()}`;
+            document.getElementById('lvlTitle').textContent = lvl.title;
+            document.getElementById('lvlScenario').textContent = lvl.scenario;
+            document.getElementById('lvlTheory').textContent = lvl.theory;
+
+            document.getElementById('lvlKeyFacts').innerHTML = lvl.facts.map(f => `
+                <div class="bg-slate-950/90 p-2.5 rounded-lg border border-slate-800">
+                    <span class="text-[10px] font-bold uppercase text-cyan-400 block">${f.k}</span>
+                    <span class="text-xs text-slate-200 font-semibold">${f.v}</span>
+                </div>
+            `).join('');
+
+            // Renderizar Sliders (PASO 1)
+            const slidersBox = document.getElementById('slidersBox');
+            slidersBox.innerHTML = '';
+            lvl.sliders.forEach(s => {
+                const val = state.sliders[s.id];
+                const isHarmful = s.weight < 0;
+                const tagText = isHarmful ? 'Factor Alterador (Disminuir)' : 'Factor Estabilizador (Aumentar)';
+                const tagClass = isHarmful
+                    ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                    : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30';
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'bg-slate-900/75 p-3 rounded-xl border border-slate-800 space-y-1.5';
+                wrapper.innerHTML = `
+                    <div class="flex flex-wrap items-center justify-between gap-1">
+                        <label class="text-xs sm:text-sm font-semibold text-white">${s.name}</label>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] px-2 py-0.5 rounded border ${tagClass}">${tagText}</span>
+                            <span class="mono font-bold text-xs sm:text-sm text-cyan-300" id="lbl_${s.id}">${val}%</span>
+                        </div>
+                    </div>
+                    <input type="range" min="0" max="100" value="${val}"
+                        oninput="updateSliderValue('${s.id}', this.value)"
+                        class="w-full h-2 bg-slate-800 rounded-lg cursor-pointer">
+                `;
+                slidersBox.appendChild(wrapper);
+            });
+
+            // Renderizar Pregunta Abierta (PASO 3)
+            document.getElementById('openQuestionPrompt').textContent = lvl.openPrompt;
+            const openInput = document.getElementById('openAnswerInput');
+            openInput.value = st.openAnswer || '';
+
+            recalculateActiveStability();
+            renderActiveQuestions();
+            evaluateOpenAnswerMetrics();
+            updateThreeStepsBadges();
+
+            document.getElementById('validationAlert').classList.add('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function updateSliderValue(sliderId, newVal) {
+            state.sliders[sliderId] = Number(newVal);
+            const lbl = document.getElementById(`lbl_${sliderId}`);
+            if (lbl) lbl.textContent = `${newVal}%`;
+            recalculateActiveStability();
+            updateThreeStepsBadges();
+            saveState();
+        }
+
+        function recalculateActiveStability() {
+            const lvl = LEVELS_10[state.currentLevelIdx];
+            let weightedSum = 0;
+            let maxWeight = 0;
+
+            lvl.sliders.forEach(s => {
+                const v = state.sliders[s.id];
+                const w = Math.abs(s.weight);
+                maxWeight += w * 100;
+                if (s.weight < 0) weightedSum += (100 - v) * w;
+                else weightedSum += v * w;
+            });
+
+            const pct = Math.round((weightedSum / maxWeight) * 100);
+            state.levels[state.currentLevelIdx].stability = pct;
+
+            const pctText = document.getElementById('simPercentText');
+            const bar = document.getElementById('simProgressBar');
+            const badge = document.getElementById('simBadgeStatus');
+            const msg = document.getElementById('simFeedbackMsg');
+
+            pctText.textContent = `${pct}%`;
+            bar.style.width = `${pct}%`;
+
+            if (pct >= 80) {
+                bar.className = 'h-full transition-all duration-300 bg-emerald-500';
+                pctText.className = 'mono font-bold text-base text-emerald-400';
+                badge.className = 'px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+                badge.textContent = 'PASO 1 COMPLETADO (≥ 80%)';
+                msg.textContent = `Equilibrio biogeoquímico alcanzado (${pct}%). Continúa con el Paso 2 y el Paso 3.`;
+            } else if (pct >= 55) {
+                bar.className = 'h-full transition-all duration-300 bg-amber-400';
+                pctText.className = 'mono font-bold text-base text-amber-300';
+                badge.className = 'px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40';
+                badge.textContent = 'EN TRANSICIÓN (META ≥ 80%)';
+                msg.textContent = `Estabilidad en ${pct}%. Ajusta los deslizadores hasta llegar al menos a 80%.`;
+            } else {
+                bar.className = 'h-full transition-all duration-300 bg-red-500';
+                pctText.className = 'mono font-bold text-base text-red-400';
+                badge.className = 'px-2.5 py-1 rounded-full text-[11px] font-bold bg-red-500/20 text-red-300 border border-red-500/40';
+                badge.textContent = 'DESEQUILIBRIO CRÍTICO';
+                msg.textContent = `Flujos alterados (${pct}%). Disminuye las fuentes contaminantes e incrementa los restauradores.`;
+            }
+        }
+
+        function renderActiveQuestions() {
+            const idx = state.currentLevelIdx;
+            const lvl = LEVELS_10[idx];
+            const st = state.levels[idx];
+            const box = document.getElementById('questionsBox');
+            box.innerHTML = '';
+
+            lvl.questions.forEach((qObj, qIdx) => {
+                const chosen = st.answers[qIdx];
+                const qCard = document.createElement('div');
+                qCard.className = 'bg-slate-900/80 p-4 rounded-xl border border-slate-800 space-y-2.5';
+
+                const optsHtml = qObj.options.map((optText, oIdx) => {
+                    const active = chosen === oIdx;
+                    return `
+                        <div onclick="chooseAnswer(${qIdx}, ${oIdx})"
+                            class="cursor-pointer flex items-start gap-2.5 p-2.5 rounded-lg border text-xs sm:text-sm transition ${active ? 'bg-cyan-950/70 border-cyan-400 text-white' : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:border-slate-700'}">
+                            <div class="w-4 h-4 rounded-full border mt-0.5 flex items-center justify-center shrink-0 ${active ? 'border-cyan-400 bg-cyan-400 text-slate-950' : 'border-slate-600'}">
+                                ${active ? '<i class="fa-solid fa-check text-[9px]"></i>' : ''}
+                            </div>
+                            <span class="leading-relaxed">${optText}</span>
+                        </div>
+                    `;
+                }).join('');
+
+                qCard.innerHTML = `
+                    <p class="font-bold text-xs sm:text-sm text-white leading-snug">${qObj.q}</p>
+                    <div class="space-y-1.5">${optsHtml}</div>
+                `;
+                box.appendChild(qCard);
+            });
+        }
+
+        function chooseAnswer(qIdx, oIdx) {
+            state.levels[state.currentLevelIdx].answers[qIdx] = oIdx;
+            saveState();
+            renderActiveQuestions();
+            updateThreeStepsBadges();
+        }
+
+        // =========================================================================
+        // VALIDACIÓN DE LAS 4 LÍNEAS DEL PASO 3 (PREGUNTA ABIERTA)
+        // =========================================================================
+        function getOpenTextMetrics(rawText) {
+            // Limpiar espacios múltiples artificiales
+            const cleanText = rawText.replace(/\s+/g, ' ').trim();
+            const chars = cleanText.length;
+            const words = cleanText ? cleanText.split(' ').filter(w => w.length > 1).length : 0;
+
+            // Calcular líneas efectivas equivalentes (~60 caracteres por línea estándar o saltos reales con contenido)
+            const explicitLines = rawText
+                .split('\n')
+                .map(l => l.trim())
+                .filter(l => l.length >= 35).length;
+
+            const wrappedLines = Math.floor(chars / 60);
+            const effectiveLines = Math.max(explicitLines, wrappedLines);
+
+            // Detectar relleno o repetición sin sentido (ej. "aaaaaa" o repetir la misma palabra)
+            const uniqueWords = new Set(cleanText.toLowerCase().split(' ').filter(w => w.length > 2)).size;
+            const isValidQuality = chars >= MIN_OPEN_CHARS && words >= MIN_OPEN_WORDS && uniqueWords >= 12 && effectiveLines >= 4;
+
+            return {
+                chars,
+                words,
+                effectiveLines,
+                uniqueWords,
+                isValidQuality
+            };
+        }
+
+        function onOpenAnswerInput() {
+            const val = document.getElementById('openAnswerInput').value;
+            state.levels[state.currentLevelIdx].openAnswer = val;
+            evaluateOpenAnswerMetrics();
+            updateThreeStepsBadges();
+            saveState();
+        }
+
+        function evaluateOpenAnswerMetrics() {
+            const val = state.levels[state.currentLevelIdx].openAnswer || '';
+            const m = getOpenTextMetrics(val);
+
+            const lineInd = document.getElementById('lineCountIndicator');
+            const wordInd = document.getElementById('wordCountIndicator');
+            const charInd = document.getElementById('charCountIndicator');
+            const badge = document.getElementById('openQuestionBadge');
+
+            const displayLines = Math.min(10, m.effectiveLines);
+            lineInd.textContent = `Líneas efectivas: ${displayLines} / 4`;
+            wordInd.textContent = `Palabras: ${m.words} (mín. ${MIN_OPEN_WORDS})`;
+            charInd.textContent = `${m.chars} / ${MIN_OPEN_CHARS} caract.`;
+
+            if (m.isValidQuality) {
+                lineInd.className = 'font-bold text-emerald-400';
+                charInd.className = 'mono text-emerald-400 font-bold';
+                badge.className = 'px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+                badge.textContent = `PASO 3 COMPLETADO (${displayLines} Líneas)`;
+            } else {
+                lineInd.className = 'font-bold text-amber-400';
+                charInd.className = 'mono text-slate-400';
+                badge.className = 'px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30';
+                badge.textContent = `${displayLines} / 4 Líneas`;
+            }
+        }
+
+        function updateThreeStepsBadges() {
+            const st = state.levels[state.currentLevelIdx];
+            const step1Done = st.stability >= 80;
+            const step2Done = st.answers.every(a => a !== null);
+            const step3Done = getOpenTextMetrics(st.openAnswer || '').isValidQuality;
+
+            styleStepBadge(1, step1Done);
+            styleStepBadge(2, step2Done);
+            styleStepBadge(3, step3Done);
+        }
+
+        function styleStepBadge(stepNum, isDone) {
+            const badge = document.getElementById(`stepBadge${stepNum}`);
+            const icon = document.getElementById(`stepIcon${stepNum}`);
+            if (isDone) {
+                badge.className = 'glass-panel rounded-xl p-2.5 sm:p-3 border border-emerald-500/50 bg-emerald-950/25 flex items-center gap-2.5';
+                icon.className = 'w-6 h-6 rounded-full bg-emerald-500 text-slate-950 text-xs font-extrabold flex items-center justify-center shrink-0';
+                icon.innerHTML = '<i class="fa-solid fa-check"></i>';
+            } else {
+                badge.className = 'glass-panel rounded-xl p-2.5 sm:p-3 border border-slate-700 flex items-center gap-2.5';
+                icon.className = 'w-6 h-6 rounded-full bg-slate-800 text-slate-300 text-xs font-extrabold flex items-center justify-center shrink-0';
+                icon.textContent = stepNum;
+            }
+        }
+
+        // =========================================================================
+        // VALIDACIÓN INTEGRAL DE LOS 3 PASOS PARA AVANZAR AL SIGUIENTE NIVEL
+        // =========================================================================
+        function validateAndUnlockNextLevel() {
+            const idx = state.currentLevelIdx;
+            const lvl = LEVELS_10[idx];
+            const st = state.levels[idx];
+            const alertBox = document.getElementById('validationAlert');
+
+            st.attempts++;
+
+            // 1. Verificar Paso 1: Simulador >= 80%
+            if (st.stability < 80) {
+                alertBox.className = 'rounded-xl p-3.5 text-xs sm:text-sm border bg-amber-950/70 border-amber-500 text-amber-200 block';
+                alertBox.innerHTML = `<i class="fa-solid fa-sliders mr-1"></i> <strong>Paso 1 Incompleto:</strong> El equilibrio del simulador está en <strong>${st.stability}%</strong>. Debes ajustarlo hasta alcanzar al menos <strong>80%</strong>.`;
+                saveState();
+                return;
+            }
+
+            // 2. Verificar Paso 2: Ambas preguntas respondidas y correctas
+            if (st.answers.some(a => a === null)) {
+                alertBox.className = 'rounded-xl p-3.5 text-xs sm:text-sm border bg-amber-950/70 border-amber-500 text-amber-200 block';
+                alertBox.innerHTML = `<i class="fa-solid fa-circle-question mr-1"></i> <strong>Paso 2 Incompleto:</strong> Debes seleccionar tu respuesta en las 2 preguntas de diagnóstico científico.`;
+                saveState();
+                return;
+            }
+
+            const wrongQuestions = [];
+            lvl.questions.forEach((qObj, qIdx) => {
+                if (st.answers[qIdx] !== qObj.correct) {
+                    wrongQuestions.push(qIdx + 1);
+                }
+            });
+
+            if (wrongQuestions.length > 0) {
+                alertBox.className = 'rounded-xl p-3.5 text-xs sm:text-sm border bg-red-950/70 border-red-500 text-red-200 block';
+                alertBox.innerHTML = `<i class="fa-solid fa-circle-xmark mr-1"></i> <strong>Error en el Paso 2:</strong> Revisa tu análisis conceptual en la(s) pregunta(s) <strong>#${wrongQuestions.join(' y #')}</strong>. Analiza el fundamento químico del ciclo e inténtalo de nuevo.`;
+                saveState();
+                return;
+            }
+
+            // 3. Verificar Paso 3: Pregunta abierta de al menos 4 líneas reales
+            const metrics = getOpenTextMetrics(st.openAnswer || '');
+            if (!metrics.isValidQuality) {
+                alertBox.className = 'rounded-xl p-3.5 text-xs sm:text-sm border bg-purple-950/70 border-purple-400 text-purple-200 block';
+                alertBox.innerHTML = `<i class="fa-solid fa-pen-nib mr-1"></i> <strong>Paso 3 Incompleto:</strong> Tu respuesta abierta debe tener <strong>al menos 4 líneas completas de argumentación científica</strong> (mínimo ${MIN_OPEN_CHARS} caracteres y ${MIN_OPEN_WORDS} palabras con vocabulario variado). Actualmente llevas ${metrics.effectiveLines} línea(s) y ${metrics.words} palabras.`;
+                document.getElementById('openAnswerInput').focus();
+                saveState();
+                return;
+            }
+
+            // ¡Los 3 Pasos del Nivel fueron superados!
+            st.completed = true;
+            const basePts = 80;
+            const stabilityBonus = Math.round((st.stability - 80) * 0.5); // hasta +10
+            const attemptBonus = Math.max(0, (3 - st.attempts) * 5);     // hasta +10
+            const earned = basePts + stabilityBonus + attemptBonus;
+            st.pointsEarned = earned;
+            state.totalScore += earned;
+
+            saveState();
+            updateTopBarUI();
+            renderLevelsSequenceBar();
+
+            // Si completó el Nivel 10, cerrar sesión y bloquear dispositivo
+            if (idx === LEVELS_10.length - 1) {
+                state.finished = true;
+                if (globalTimerInterval) clearInterval(globalTimerInterval);
+                state.securityLogs.push(`[Min ${formatTime(3600 - state.remainingGlobalSeconds)}] ¡Misión completada! Los 10 niveles (30 pasos) fueron superados. Sesión bloqueada.`);
+                saveState();
+                showReportView();
+            } else {
+                state.currentLevelIdx = idx + 1;
+                state.currentLevelSeconds = LEVEL_PACING_SECONDS;
+                saveState();
+                renderLevelsSequenceBar();
+                loadActiveLevel(state.currentLevelIdx);
+            }
+        }
+
+        // =========================================================================
+        // 8. REPORTE FINAL CON EVIDENCIA DE LAS RESPUESTAS ABIERTAS Y BLOQUEO
+        // =========================================================================
+        function showReportView() {
+            document.getElementById('viewSetup').classList.add('hidden');
+            document.getElementById('viewLab').classList.add('hidden');
+            document.getElementById('viewReport').classList.remove('hidden');
+
+            const roleObj = ROLES_10.find(r => r.id === state.selectedRoleId) || ROLES_10[0];
+            const completedLevels = state.levels.filter(l => l.completed).length;
+            const usedSecs = 3600 - state.remainingGlobalSeconds;
+
+            document.getElementById('deviceTokenBadge').textContent = `ID Dispositivo: ${state.deviceToken}`;
+            document.getElementById('repStudentName').textContent = state.studentName || 'Estudiante Registrado';
+            document.getElementById('repRoleAndCourse').textContent = `${state.studentCourse} • Rol Científico: ${roleObj.name} • Registro Único Sellado`;
+            document.getElementById('repTotalScore').textContent = `${state.totalScore} PTS`;
+            document.getElementById('repLevelsCompleted').textContent = `${completedLevels} / 10`;
+            document.getElementById('repTimeUsed').textContent = formatTime(usedSecs);
+            document.getElementById('repTabStrikes').textContent = state.tabStrikes;
+
+            const logContainer = document.getElementById('repSecurityLog');
+            if (state.securityLogs.length === 0) {
+                logContainer.innerHTML = '<p class="text-emerald-400">Sin incidentes de seguridad registrados.</p>';
+            } else {
+                logContainer.innerHTML = state.securityLogs.map(l => `<p>• ${l}</p>`).join('');
+            }
+
+            const breakdown = document.getElementById('repLevelsBreakdown');
+            breakdown.innerHTML = LEVELS_10.map((lvl, idx) => {
+                const st = state.levels[idx];
+                const safeOpenText = (st.openAnswer || 'Sin respuesta registrada.').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                return `
+                    <div class="bg-slate-900/90 p-4 rounded-xl border ${st.completed ? 'border-emerald-500/30' : 'border-slate-800'} space-y-2.5">
+                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${st.completed ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-400'}">
+                                    ${st.completed ? '3 PASOS SUPERADOS' : 'INCOMPLETO'}
+                                </span>
+                                <span class="text-xs sm:text-sm font-bold text-white print-text-dark">Nivel ${lvl.level}: ${lvl.cycle}</span>
+                            </div>
+                            <div class="flex items-center gap-3 text-xs mono">
+                                <span class="text-slate-400">Tiempo: ${formatTime(st.timeSpentSeconds)}</span>
+                                <span class="text-cyan-300 font-bold">Simulador: ${st.stability}%</span>
+                                <span class="text-emerald-400 font-bold">+${st.pointsEarned} PTS</span>
+                            </div>
+                        </div>
+                        <div class="text-xs space-y-1">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-purple-400 block">Dictamen Abierto del Estudiante (Paso 3):</span>
+                            <p class="text-slate-200 print-text-dark bg-slate-950/70 p-3 rounded-lg border border-slate-800 leading-relaxed whitespace-pre-wrap">${safeOpenText}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // =========================================================================
+        // 9. INICIALIZACIÓN Y VERIFICACIÓN DE ACCESO ÚNICO DEL DISPOSITIVO
+        // =========================================================================
+        window.addEventListener('DOMContentLoaded', () => {
+            setupAntiCheatProtection();
+            loadState();
+
+            if (state.finished) {
+                // Si ya terminó su único intento en este dispositivo, va directo al reporte bloqueado
+                showReportView();
+            } else if (state.accessRegistered) {
+                // Si ya había iniciado su único intento y recargó la página, continúa exactamente donde iba sin poder reiniciar
+                showLabView();
+            } else {
+                renderSetupView();
+            }
+        });
+    </script>
+</body>
